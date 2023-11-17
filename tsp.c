@@ -14,7 +14,8 @@
 
 #define ROOT 0
 
-#define DBG(x, ...) fprintf(stderr, "id %d: " x "\n", my_rank __VA_OPT__(,) __VA_ARGS__);
+//#define DBG(x, ...) fprintf(stderr, "id %d: " x "\n", my_rank __VA_OPT__(,) __VA_ARGS__);
+#define DBG(x, ...) 
 
 int my_rank, n_procs;
 
@@ -36,10 +37,10 @@ void tsp (int depth, int current_length, int *path, char *present_towns) {
         current_length += dist_to_origin[path[nb_towns - 1]];
         if (current_length < min_distance) {
             min_distance = current_length;
-            fprintf(stderr, "found path: ");
-            for (int i = 0; i < nb_towns; i++)
-                fprintf(stderr, "%d ", path[i]);
-            fprintf(stderr, "\n");
+            //fprintf(stderr, "%d: found path: ", my_rank);
+            //for (int i = 0; i < nb_towns; i++)
+            //    fprintf(stderr, "%d ", path[i]);
+            //fprintf(stderr, "\n");
         }
     } else {
         int town, me, dist;
@@ -120,6 +121,9 @@ void init_tsp() {
     x = (int*) malloc(sizeof(int) * nb_towns);
     y = (int*) malloc(sizeof(int) * nb_towns);
     
+    DBG("A here is x and y: %p %p", x, y);
+    DBG("A here is x[0] and y[0]: %d %d", x[0], y[0]);
+    DBG("A here is x[nb_towns - 1] and y[nb_towns - 1]: %d %d", x[nb_towns - 1], y[nb_towns - 1]);
 
     if (my_rank == ROOT) {
         for (i = 0; i < nb_towns; i++) {
@@ -129,19 +133,31 @@ void init_tsp() {
         }
     }
 
-    MPI_Bcast(&x, nb_towns, MPI_INT, ROOT, MPI_COMM_WORLD);
+    MPI_Bcast(x, nb_towns, MPI_INT, ROOT, MPI_COMM_WORLD);
     DBG("bcasted x");
 
-    MPI_Bcast(&y, nb_towns, MPI_INT, ROOT, MPI_COMM_WORLD);
+    MPI_Bcast(y, nb_towns, MPI_INT, ROOT, MPI_COMM_WORLD);
     DBG("bcasted y");
 
+    DBG("inside init_tsp: nb_towns = %d", nb_towns);
+    DBG("B here is x and y: %p %p", x, y);
+    DBG("B here is x[0] and y[0]: %d %d", x[0], y[0]);
+    DBG("B here is x[nb_towns - 1] and y[nb_towns - 1]: %d %d", x[nb_towns - 1], y[nb_towns - 1]);
+    //for (int i = 0; i < nb_towns; i++)
+    //    fprintf(stderr, " (%d, %d)", x[i], y[i]);
+    //fprintf(stderr, "\n");
+
+    DBG("running heuristic");
     greedy_shortest_first_heuristic(x, y);
     
+    DBG("run heuristic");
+
     free(x);
     free(y);
 }
 
 int run_tsp() {
+    DBG("run_tsp");
     char *present_towns = calloc(nb_towns, sizeof(char));
     int *path = calloc(nb_towns, sizeof(int));
 
@@ -188,9 +204,6 @@ int main (int argc, char **argv) {
     MPI_Bcast(&num_instances, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
     DBG("bcasted num_instances == %d", num_instances);
 
-    DBG("will wait in barrier");
-    MPI_Barrier(MPI_COMM_WORLD);
-
     while(num_instances-- > 0) {
         DBG("while start");
         init_tsp();
@@ -210,7 +223,8 @@ int main (int argc, char **argv) {
 
         DBG("reduced: %d", min_result);
 
-        //printf("%d\n", min_result);
+        if (my_rank == ROOT)
+            printf("%d\n", min_result);
     }
 
     MPI_Finalize();

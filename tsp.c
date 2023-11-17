@@ -161,17 +161,17 @@ int run_tsp() {
     char *present_towns = calloc(nb_towns, sizeof(char));
     int *path = calloc(nb_towns, sizeof(int));
 
+    path[0] = 0;
+    present_towns[0] = 1;
+    
     for (int i = my_rank + 1; i < nb_towns; i += n_procs)
     {
-        path[0] = 0;
         path[1] = i;
 
-        present_towns[0] = 1;
         present_towns[i] = 1;
 
         tsp(2, dist_to_origin[i], path, present_towns);
 
-        present_towns[0] = 0;
         present_towns[i] = 0;
     }
 
